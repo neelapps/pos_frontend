@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Ticket, RefreshCw, Trash } from 'lucide-react';
+import { Plus, Ticket, RefreshCw, Trash, Loader2 } from 'lucide-react';
 import API from '../services/api.js';
 import Modal from '../components/Modal.jsx';
 
 const Coupons = () => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Add Coupon modal state
   const [showModal, setShowModal] = useState(false);
@@ -41,22 +42,28 @@ const Coupons = () => {
     e.preventDefault();
     if (!form.code || !form.discountValue || !form.minOrderAmount) return;
 
+    setIsSubmitting(true);
     try {
       await API.post('/pos/coupons', form);
       setShowModal(false);
       fetchCoupons();
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to create coupon');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this coupon code?')) return;
+    setIsSubmitting(true);
     try {
       await API.delete(`/pos/coupons/${id}`);
       fetchCoupons();
     } catch (error) {
       alert('Delete failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -131,8 +138,9 @@ const Coupons = () => {
                     </td>
                     <td className="py-3.5 text-right">
                       <button
+                        disabled={isSubmitting}
                         onClick={() => handleDelete(c.id)}
-                        className="p-1 text-red-500 hover:text-red-600 hover:bg-red-50 rounded"
+                        className="p-1 text-red-500 hover:text-red-650 hover:bg-red-50 rounded disabled:opacity-50"
                       >
                         <Trash size={14} />
                       </button>
@@ -209,9 +217,11 @@ const Coupons = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2"
+            disabled={isSubmitting}
+            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            Save Promo Coupon
+            {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null}
+            <span>Save Promo Coupon</span>
           </button>
         </form>
       </Modal>

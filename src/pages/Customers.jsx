@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, Search, RefreshCw } from 'lucide-react';
+import { Plus, Users, Search, RefreshCw, Loader2 } from 'lucide-react';
 import API from '../services/api.js';
 import Modal from '../components/Modal.jsx';
 
@@ -7,6 +7,7 @@ const Customers = () => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Register Modal status
   const [showModal, setShowModal] = useState(false);
@@ -36,12 +37,15 @@ const Customers = () => {
     e.preventDefault();
     if (!form.name || !form.phone) return;
 
+    setIsSubmitting(true);
     try {
       await API.post('/pos/customers', form);
       setShowModal(false);
       fetchCustomers();
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to register customer');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -166,9 +170,11 @@ const Customers = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2"
+            disabled={isSubmitting}
+            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            Register Account
+            {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null}
+            <span>Register Account</span>
           </button>
         </form>
       </Modal>

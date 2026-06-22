@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, CreditCard, Printer, Search, RefreshCw, X, Trash2, CookingPot, Edit2 } from 'lucide-react';
+import { Eye, CreditCard, Printer, Search, RefreshCw, X, Trash2, CookingPot, Edit2, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { loadDraftOrder } from '../store/slices/cartSlice.js';
@@ -40,6 +40,7 @@ const Orders = () => {
   // Item cancellation modal
   const [showCancelItemModal, setShowCancelItemModal] = useState(false);
   const [cancellationItem, setCancellationItem] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -85,6 +86,7 @@ const Orders = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       await API.post(`/pos/orders/${selectedOrder.id}/checkout`, {
         paymentMethod: checkoutPaymentMethod,
@@ -99,6 +101,23 @@ const Orders = () => {
       fetchOrders();
     } catch (error) {
       alert(error.response?.data?.message || 'Checkout failed');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleActivateOrder = async (orderId) => {
+    if (!window.confirm('Send KOT to kitchen and activate this draft order?')) return;
+    setIsSubmitting(true);
+    try {
+      await API.post(`/pos/orders/${orderId}/activate`);
+      alert('KOT generated and order sent to kitchen!');
+      setShowDetailsModal(false);
+      fetchOrders();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Activation failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -259,27 +278,20 @@ const Orders = () => {
                         {ord.status === 'Pending' && (
                           <>
                             <button
+                              disabled={isSubmitting}
                               onClick={() => handleEditDraft(ord.id)}
                               title="Edit/Resume Draft"
-                              className="p-1.5 bg-amber-50 border border-amber-100 text-amber-700 hover:bg-amber-100 rounded-lg dark:bg-amber-955/20 dark:border-amber-900/30 dark:text-amber-400"
+                              className="p-1.5 bg-amber-50 border border-amber-100 text-amber-700 hover:bg-amber-100 rounded-lg dark:bg-amber-955/20 dark:border-amber-900/30 dark:text-amber-400 disabled:opacity-50"
                             >
                               <Edit2 size={14} />
                             </button>
                             <button
-                              onClick={async () => {
-                                if (!window.confirm('Send KOT to kitchen and activate this draft order?')) return;
-                                try {
-                                  await API.post(`/pos/orders/${ord.id}/activate`);
-                                  alert('KOT generated and order sent to kitchen!');
-                                  fetchOrders();
-                                } catch (error) {
-                                  alert(error.response?.data?.message || 'Activation failed');
-                                }
-                              }}
+                              disabled={isSubmitting}
+                              onClick={() => handleActivateOrder(ord.id)}
                               title="Send KOT to Kitchen"
-                              className="p-1.5 bg-indigo-50 border border-indigo-100 text-indigo-750 hover:bg-indigo-100 rounded-lg dark:bg-indigo-950/40 dark:border-indigo-900/30 dark:text-indigo-450"
+                              className="p-1.5 bg-indigo-50 border border-indigo-100 text-indigo-750 hover:bg-indigo-100 rounded-lg dark:bg-indigo-950/40 dark:border-indigo-900/30 dark:text-indigo-450 disabled:opacity-50"
                             >
-                              <CookingPot size={14} />
+                              {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : <CookingPot size={14} />}
                             </button>
                           </>
                         )}
@@ -453,8 +465,9 @@ const Orders = () => {
             {/* Print and Checkout Options */}
             <div className="flex justify-between border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
               <button
+                disabled={isSubmitting}
                 onClick={() => handlePrint(selectedOrder)}
-                className="flex items-center gap-2 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50"
+                className="flex items-center gap-2 border border-slate-200 dark:border-slate-770 px-4 py-2 rounded-lg text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 disabled:opacity-50"
               >
                 <Printer size={14} /> Print Receipt
               </button>
@@ -463,41 +476,35 @@ const Orders = () => {
                 {selectedOrder.status === 'Pending' && (
                   <>
                     <button
+                      disabled={isSubmitting}
                       onClick={() => {
                         handleEditDraft(selectedOrder.id);
                         setShowDetailsModal(false);
                       }}
-                      className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all"
+                      className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
                     >
                       <Edit2 size={14} /> Edit Draft
                     </button>
                     <button
-                      onClick={async () => {
-                        if (!window.confirm('Are you sure you want to send this KOT to kitchen and activate this order?')) return;
-                        try {
-                          await API.post(`/pos/orders/${selectedOrder.id}/activate`);
-                          alert('KOT generated and order sent to kitchen!');
-                          setShowDetailsModal(false);
-                          fetchOrders();
-                        } catch (error) {
-                          alert(error.response?.data?.message || 'Activation failed');
-                        }
-                      }}
-                      className="flex items-center gap-2 bg-indigo-650 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all expired-hide"
+                      disabled={isSubmitting}
+                      onClick={() => handleActivateOrder(selectedOrder.id)}
+                      className="flex items-center gap-2 bg-indigo-650 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all expired-hide disabled:opacity-50"
                     >
-                      Send KOT to Kitchen
+                      {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : null}
+                      <span>Send KOT to Kitchen</span>
                     </button>
                   </>
                 )}
 
                 {selectedOrder.paymentStatus !== 'Paid' && (
                   <button
+                    disabled={isSubmitting}
                     onClick={() => {
                       const remaining = (parseFloat(selectedOrder.totalAmount) - (parseFloat(selectedOrder.amountPaid) || 0)).toFixed(2);
                       setCheckoutAmount(remaining);
                       setShowCheckoutModal(true);
                     }}
-                    className="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-brand-700"
+                    className="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-brand-700 disabled:opacity-50"
                   >
                     <CreditCard size={14} /> Checkout Pay
                   </button>
@@ -645,10 +652,12 @@ const Orders = () => {
             </div>
           </div>
           <button
+            disabled={isSubmitting}
             onClick={handleCheckoutSubmit}
-            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-4 expired-hide"
+            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-4 expired-hide disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            Submit Settlement Payment
+            {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null}
+            <span>Submit Settlement Payment</span>
           </button>
         </div>
       </Modal>

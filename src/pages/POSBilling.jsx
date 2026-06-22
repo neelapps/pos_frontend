@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Search, ShoppingCart, Plus, Minus, Trash, Save, UserCheck, Grid, Ticket, CreditCard, ChevronRight, X, AlertTriangle, Printer } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Minus, Trash, Save, UserCheck, Grid, Ticket, CreditCard, ChevronRight, X, AlertTriangle, Printer, Loader2 } from 'lucide-react';
 import {
   addToCart,
   removeFromCart,
@@ -152,6 +152,7 @@ const POSBilling = () => {
   const [vegOnly, setVegOnly] = useState(false);
   const [popularItemIds, setPopularItemIds] = useState([]);
   const [printData, setPrintData] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modals status
   const [showTableModal, setShowTableModal] = useState(false);
@@ -293,6 +294,7 @@ const POSBilling = () => {
 
   const handleSearchCustomer = async () => {
     if (!customerPhone) return;
+    setIsSubmitting(true);
     try {
       const { data } = await API.get(`/pos/customers/search?phone=${customerPhone}`);
       setCustomerInfo(data);
@@ -300,11 +302,14 @@ const POSBilling = () => {
     } catch (error) {
       setCustomerFound(false);
       alert('Customer not found. You can register them below.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleRegisterCustomer = async () => {
     if (!customerInfo.name || !customerInfo.phone) return;
+    setIsSubmitting(true);
     try {
       const { data } = await API.post('/pos/customers', customerInfo);
       dispatch(setCustomer(data));
@@ -314,10 +319,13 @@ const POSBilling = () => {
       setCustomerFound(false);
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to create customer');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleApplyCoupon = async () => {
+    setIsSubmitting(true);
     try {
       const { data } = await API.post('/pos/coupons/validate', {
         code: couponCode,
@@ -327,11 +335,14 @@ const POSBilling = () => {
       setShowCouponModal(false);
     } catch (error) {
       alert(error.response?.data?.message || 'Invalid coupon');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleAddItemSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const { data } = await API.post('/menu/items', newItemForm);
       setMenuItems(prev => [data, ...prev]);
@@ -351,6 +362,8 @@ const POSBilling = () => {
       alert('New item added to menu and cart!');
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to create menu item');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -370,6 +383,7 @@ const POSBilling = () => {
     const tableNumber = cart.selectedTable?.tableNumber || '';
     const waiterName = cart.waiterName || 'Cashier';
 
+    setIsSubmitting(true);
     try {
       const orderPayload = {
         tableId: cart.selectedTable?.id || null,
@@ -412,6 +426,8 @@ const POSBilling = () => {
       }
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to place order');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -419,6 +435,7 @@ const POSBilling = () => {
     if (cart.items.length === 0) return;
     if (cart.orderType === 'Dine-In' && !cart.selectedTable) return;
 
+    setIsSubmitting(true);
     try {
       // 1. Create order first
       const orderPayload = {
@@ -456,6 +473,8 @@ const POSBilling = () => {
 
     } catch (error) {
       alert(error.response?.data?.message || 'Checkout failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -631,41 +650,45 @@ const POSBilling = () => {
         {/* Action checkout buttons */}
         <div className="grid grid-cols-4 gap-1.5 mt-5 expired-hide">
           <button
+            disabled={isSubmitting}
             onClick={() => {
               if (isMobile) setShowMobileCartModal(false);
               handlePlaceOrder(true);
             }}
-            className="flex flex-col items-center justify-center bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl py-3 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+            className="flex flex-col items-center justify-center bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl py-3 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 disabled:opacity-50"
           >
-            <Save size={16} />
+            {isSubmitting ? <Loader2 className="animate-spin text-slate-500" size={16} /> : <Save size={16} />}
             <span className="text-[9px] font-bold mt-1">Save Draft</span>
           </button>
           <button
+            disabled={isSubmitting}
             onClick={() => {
               if (isMobile) setShowMobileCartModal(false);
               handlePlaceOrder(false);
             }}
-            className="flex flex-col items-center justify-center bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 rounded-xl py-3 dark:bg-indigo-950/20 dark:border-indigo-900/30 dark:text-indigo-455"
+            className="flex flex-col items-center justify-center bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 rounded-xl py-3 dark:bg-indigo-950/20 dark:border-indigo-900/30 dark:text-indigo-455 disabled:opacity-50"
           >
-            <Save size={16} />
+            {isSubmitting ? <Loader2 className="animate-spin text-indigo-500" size={16} /> : <Save size={16} />}
             <span className="text-[9px] font-bold mt-1">KOT Only</span>
           </button>
           <button
+            disabled={isSubmitting}
             onClick={() => {
               if (isMobile) setShowMobileCartModal(false);
               handlePlaceOrder(false, true);
             }}
-            className="flex flex-col items-center justify-center bg-emerald-50 border border-emerald-100 text-emerald-700 hover:bg-emerald-100 rounded-xl py-3 dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-450"
+            className="flex flex-col items-center justify-center bg-emerald-50 border border-emerald-100 text-emerald-700 hover:bg-emerald-100 rounded-xl py-3 dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-450 disabled:opacity-50"
           >
-            <Printer size={16} />
+            {isSubmitting ? <Loader2 className="animate-spin text-emerald-500" size={16} /> : <Printer size={16} />}
             <span className="text-[9px] font-bold mt-1">KOT & Print</span>
           </button>
           <button
+            disabled={isSubmitting}
             onClick={() => {
               if (isMobile) setShowMobileCartModal(false);
               setShowCheckoutModal(true);
             }}
-            className="flex flex-col items-center justify-center bg-brand-600 text-white hover:bg-brand-700 rounded-xl py-3 shadow-md"
+            className="flex flex-col items-center justify-center bg-brand-600 text-white hover:bg-brand-700 rounded-xl py-3 shadow-md disabled:opacity-50"
           >
             <CreditCard size={16} />
             <span className="text-[9px] font-bold mt-1">Checkout</span>
@@ -1147,10 +1170,12 @@ const POSBilling = () => {
               className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent focus:outline-none"
             />
             <button
+              disabled={isSubmitting}
               onClick={handleSearchCustomer}
-              className="bg-brand-500 text-white px-4 py-2 rounded-lg"
+              className="bg-brand-500 text-white px-4 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              Find
+              {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : null}
+              <span>Find</span>
             </button>
           </div>
 
@@ -1209,10 +1234,12 @@ const POSBilling = () => {
 
               {!customerFound && (
                 <button
+                  disabled={isSubmitting}
                   onClick={handleRegisterCustomer}
-                  className="w-full bg-brand-500 text-white font-semibold py-2 rounded-lg mt-2"
+                  className="w-full bg-brand-500 text-white font-semibold py-2 rounded-lg mt-2 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  Register & Use Customer
+                  {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null}
+                  <span>Register & Use Customer</span>
                 </button>
               )}
             </div>
@@ -1232,10 +1259,12 @@ const POSBilling = () => {
               className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent focus:outline-none"
             />
             <button
+              disabled={isSubmitting}
               onClick={handleApplyCoupon}
-              className="bg-brand-500 text-white px-4 py-2 rounded-lg"
+              className="bg-brand-500 text-white px-4 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              Verify
+              {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : null}
+              <span>Verify</span>
             </button>
           </div>
 
@@ -1280,6 +1309,7 @@ const POSBilling = () => {
               {['Cash', 'Card', 'UPI'].map((method) => (
                 <button
                   key={method}
+                  disabled={isSubmitting}
                   onClick={() => setCheckoutPaymentMethod(method)}
                   className={`py-3 rounded-xl border font-bold text-sm transition-all ${
                     checkoutPaymentMethod === method
@@ -1295,10 +1325,12 @@ const POSBilling = () => {
 
           <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
             <button
+              disabled={isSubmitting}
               onClick={handleCheckoutSubmit}
-              className="w-full bg-brand-600 text-white hover:bg-brand-700 font-bold py-3 rounded-xl shadow-md transition-all"
+              className="w-full bg-brand-600 text-white hover:bg-brand-700 font-bold py-3 rounded-xl shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Complete Checkout & Print Bill
+              {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null}
+              <span>Complete Checkout & Print Bill</span>
             </button>
           </div>
         </div>
@@ -1431,16 +1463,19 @@ const POSBilling = () => {
           <div className="border-t border-slate-100 dark:border-slate-800 pt-4 flex gap-3">
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={() => setShowAddItemModal(false)}
-              className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+              className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all"
+              disabled={isSubmitting}
+              className="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Create & Add to Cart
+              {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null}
+              <span>Create & Add to Cart</span>
             </button>
           </div>
         </form>

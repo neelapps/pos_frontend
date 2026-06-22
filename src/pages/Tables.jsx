@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Grid, Edit2, Trash, RefreshCw, Printer, CreditCard, Trash2 } from 'lucide-react';
+import { Plus, Grid, Edit2, Trash, RefreshCw, Printer, CreditCard, Trash2, Loader2 } from 'lucide-react';
 import API from '../services/api.js';
 import Modal from '../components/Modal.jsx';
 import { useSelector, useDispatch } from 'react-redux';
@@ -103,6 +103,7 @@ const Tables = () => {
   // Item cancellation modal
   const [showCancelItemModal, setShowCancelItemModal] = useState(false);
   const [cancellationItem, setCancellationItem] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchTables = async () => {
     try {
@@ -166,6 +167,7 @@ const Tables = () => {
     e.preventDefault();
     if (!tableForm.tableNumber) return;
 
+    setIsSubmitting(true);
     try {
       if (isEditMode) {
         await API.put(`/tables/${selectedTable.id}`, tableForm);
@@ -176,16 +178,21 @@ const Tables = () => {
       fetchTables();
     } catch (error) {
       alert(error.response?.data?.message || 'Action failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (tableId) => {
     if (!window.confirm('Are you sure you want to delete this table?')) return;
+    setIsSubmitting(true);
     try {
       await API.delete(`/tables/${tableId}`);
       fetchTables();
     } catch (error) {
       alert(error.response?.data?.message || 'Delete failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -197,6 +204,7 @@ const Tables = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       await API.post('/pos/merge-tables', mergeForm);
       alert('Tables merged successfully');
@@ -204,6 +212,43 @@ const Tables = () => {
       fetchTables();
     } catch (error) {
       alert(error.response?.data?.message || 'Merge failed');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSettleSubmit = async () => {
+    if (!settleTable || !settleTable.orders || !settleTable.orders[0]) return;
+    const orderId = settleTable.orders[0].id;
+    const amountToPay = parseFloat(paymentAmount);
+    if (isNaN(amountToPay) || amountToPay <= 0) {
+      alert('Please enter a valid payment amount');
+      return;
+    }
+    
+    const remaining = parseFloat(settleTable.orders[0].totalAmount) - (parseFloat(settleTable.orders[0].amountPaid) || 0);
+    if (amountToPay > remaining + 0.01) {
+      alert(`Payment amount cannot exceed the remaining balance of Rs. ${remaining.toFixed(2)}`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await API.post(`/pos/orders/${orderId}/checkout`, {
+        paymentMethod: paymentMethod,
+        amountPaid: amountToPay
+      });
+      
+      const isFullyPaid = (parseFloat(settleTable.orders[0].amountPaid || 0) + amountToPay) >= parseFloat(settleTable.orders[0].totalAmount);
+      
+      alert(isFullyPaid ? 'Order settled successfully!' : `Partial payment of Rs. ${amountToPay.toFixed(2)} recorded!`);
+      setShowSettleModal(false);
+      setSettleTable(null);
+      fetchTables(); // Refresh tables view
+    } catch (error) {
+      alert(error.response?.data?.message || 'Settlement failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -240,14 +285,16 @@ const Tables = () => {
           {isAdminOrManager && (
             <div className="flex gap-1">
               <button
+                disabled={isSubmitting}
                 onClick={() => handleOpenEdit(table)}
-                className="p-1 hover:bg-slate-100 rounded text-slate-500 dark:hover:bg-slate-800"
+                className="p-1 hover:bg-slate-100 rounded text-slate-500 dark:hover:bg-slate-800 disabled:opacity-50"
               >
                 <Edit2 size={10} />
               </button>
               <button
+                disabled={isSubmitting}
                 onClick={() => handleDelete(table.id)}
-                className="p-1 hover:bg-red-50 rounded text-red-500 dark:hover:bg-red-950/20"
+                className="p-1 hover:bg-red-50 rounded text-red-500 dark:hover:bg-red-950/20 disabled:opacity-50"
               >
                 <Trash size={10} />
               </button>
@@ -593,9 +640,11 @@ const Tables = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2"
+            disabled={isSubmitting}
+            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            Save Changes
+            {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null}
+            <span>Save Changes</span>
           </button>
         </form>
       </Modal>
@@ -633,9 +682,11 @@ const Tables = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-brand-650 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2"
+            disabled={isSubmitting}
+            className="w-full bg-brand-650 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            Execute Merge
+            {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null}
+            <span>Execute Merge</span>
           </button>
         </form>
       </Modal>
@@ -647,6 +698,7 @@ const Tables = () => {
             onSubmit={async (e) => {
               e.preventDefault();
               if (!newCategoryName) return;
+              setIsSubmitting(true);
               try {
                 await API.post('/tables/categories', { name: newCategoryName, description: newCategoryDesc });
                 setNewCategoryName('');
@@ -654,11 +706,13 @@ const Tables = () => {
                 fetchTableCategories();
               } catch (error) {
                 alert(error.response?.data?.message || 'Failed to create category');
+              } finally {
+                setIsSubmitting(false);
               }
             }}
-            className="space-y-3 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800"
+            className="space-y-3 p-4 bg-slate-50 dark:bg-slate-955 rounded-xl border border-slate-200 dark:border-slate-800"
           >
-            <h4 className="font-bold text-xs text-slate-500 uppercase tracking-wider">Create New Category</h4>
+            <h4 className="font-bold text-xs text-slate-505 uppercase tracking-wider">Create New Category</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] font-semibold text-slate-450 block mb-1">Category Name *</label>
@@ -684,9 +738,11 @@ const Tables = () => {
             </div>
             <button
               type="submit"
-              className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 rounded-lg text-xs"
+              disabled={isSubmitting}
+              className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 rounded-lg text-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              Add Category
+              {isSubmitting ? <Loader2 className="animate-spin" size={12} /> : null}
+              <span>Add Category</span>
             </button>
           </form>
 
@@ -704,16 +760,20 @@ const Tables = () => {
                   ) : (
                     <button
                       type="button"
+                      disabled={isSubmitting}
                       onClick={async () => {
                         if (!window.confirm(`Delete the "${cat.name}" category?`)) return;
+                        setIsSubmitting(true);
                         try {
                           await API.delete(`/tables/categories/${cat.id}`);
                           fetchTableCategories();
                         } catch (error) {
                           alert(error.response?.data?.message || 'Delete failed');
+                        } finally {
+                          setIsSubmitting(false);
                         }
                       }}
-                      className="text-rose-500 hover:text-rose-650 hover:bg-rose-50 p-1 rounded"
+                      className="text-rose-500 hover:text-rose-650 hover:bg-rose-50 p-1 rounded disabled:opacity-50"
                     >
                       <Trash size={14} />
                     </button>
@@ -899,48 +959,22 @@ const Tables = () => {
             <div className="border-t border-slate-100 dark:border-slate-800 pt-4 flex gap-2">
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={() => {
                   handlePrint(settleTable.orders[0]);
                 }}
-                className="flex-1 py-3 border border-slate-205 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs flex justify-center items-center gap-1.5 transition-all"
+                className="flex-1 py-3 border border-slate-205 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs flex justify-center items-center gap-1.5 transition-all disabled:opacity-50"
               >
                 <Printer size={14} /> Print Bill
               </button>
               <button
                 type="button"
-                onClick={async () => {
-                  try {
-                    const orderId = settleTable.orders[0].id;
-                    const amountToPay = parseFloat(paymentAmount);
-                    if (isNaN(amountToPay) || amountToPay <= 0) {
-                      alert('Please enter a valid payment amount');
-                      return;
-                    }
-                    
-                    const remaining = parseFloat(settleTable.orders[0].totalAmount) - (parseFloat(settleTable.orders[0].amountPaid) || 0);
-                    if (amountToPay > remaining + 0.01) {
-                      alert(`Payment amount cannot exceed the remaining balance of Rs. ${remaining.toFixed(2)}`);
-                      return;
-                    }
-
-                    await API.post(`/pos/orders/${orderId}/checkout`, {
-                      paymentMethod: paymentMethod,
-                      amountPaid: amountToPay
-                    });
-                    
-                    const isFullyPaid = (parseFloat(settleTable.orders[0].amountPaid || 0) + amountToPay) >= parseFloat(settleTable.orders[0].totalAmount);
-                    
-                    alert(isFullyPaid ? 'Order settled successfully!' : `Partial payment of Rs. ${amountToPay.toFixed(2)} recorded!`);
-                    setShowSettleModal(false);
-                    setSettleTable(null);
-                    fetchTables(); // Refresh tables view
-                  } catch (error) {
-                    alert(error.response?.data?.message || 'Settlement failed');
-                  }
-                }}
-                className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 font-bold py-3 rounded-xl shadow-md text-xs flex justify-center items-center gap-1.5 transition-all"
+                disabled={isSubmitting}
+                onClick={handleSettleSubmit}
+                className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 font-bold py-3 rounded-xl shadow-md text-xs flex justify-center items-center gap-1.5 transition-all disabled:opacity-50"
               >
-                <CreditCard size={14} /> Settle & Checkout
+                {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : <CreditCard size={14} />}
+                <span>Settle & Checkout</span>
               </button>
             </div>
           </div>

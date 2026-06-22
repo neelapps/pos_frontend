@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash, RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Trash, RefreshCw, Loader2 } from 'lucide-react';
 import API from '../services/api.js';
 import Modal from '../components/Modal.jsx';
 
@@ -9,6 +9,7 @@ const MenuItems = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [addOns, setAddOns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Item form modal states
   const [showItemModal, setShowItemModal] = useState(false);
@@ -131,6 +132,7 @@ const MenuItems = () => {
     e.preventDefault();
     if (!itemForm.name || !itemForm.price || !itemForm.categoryId) return;
 
+    setIsSubmitting(true);
     try {
       if (editItem) {
         await API.put(`/menu/items/${editItem.id}`, itemForm);
@@ -141,16 +143,21 @@ const MenuItems = () => {
       fetchData();
     } catch (error) {
       alert(error.response?.data?.message || 'Action failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteItem = async (itemId) => {
     if (!window.confirm('Are you sure you want to delete this menu item?')) return;
+    setIsSubmitting(true);
     try {
       await API.delete(`/menu/items/${itemId}`);
       fetchData();
     } catch (error) {
       alert(error.response?.data?.message || 'Delete failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -175,6 +182,7 @@ const MenuItems = () => {
     e.preventDefault();
     if (!categoryForm.name) return;
 
+    setIsSubmitting(true);
     try {
       if (editCategory) {
         await API.put(`/menu/categories/${editCategory.id}`, categoryForm);
@@ -185,16 +193,21 @@ const MenuItems = () => {
       fetchData();
     } catch (error) {
       alert(error.response?.data?.message || 'Action failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteCategory = async (catId) => {
     if (!window.confirm('Are you sure you want to delete this category?')) return;
+    setIsSubmitting(true);
     try {
       await API.delete(`/menu/categories/${catId}`);
       fetchData();
     } catch (error) {
       alert(error.response?.data?.message || 'Delete failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -225,6 +238,7 @@ const MenuItems = () => {
     e.preventDefault();
     if (!addOnForm.name || !addOnForm.price) return;
 
+    setIsSubmitting(true);
     try {
       if (editAddOn) {
         await API.put(`/menu/addons/${editAddOn.id}`, addOnForm);
@@ -235,16 +249,21 @@ const MenuItems = () => {
       fetchData();
     } catch (error) {
       alert(error.response?.data?.message || 'Action failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteAddOn = async (addonId) => {
     if (!window.confirm('Are you sure you want to delete this Add-on?')) return;
+    setIsSubmitting(true);
     try {
       await API.delete(`/menu/addons/${addonId}`);
       fetchData();
     } catch (error) {
       alert(error.response?.data?.message || 'Delete failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -791,9 +810,11 @@ const MenuItems = () => {
 
           <button
             type="submit"
-            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2"
+            disabled={isSubmitting}
+            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            Save Item
+            {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null}
+            <span>Save Item</span>
           </button>
         </form>
       </Modal>
@@ -834,9 +855,11 @@ const MenuItems = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2"
+            disabled={isSubmitting}
+            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            Save Category
+            {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null}
+            <span>Save Category</span>
           </button>
         </form>
       </Modal>
@@ -905,9 +928,11 @@ const MenuItems = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2"
+            disabled={isSubmitting}
+            className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 mt-2 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            Save Add-on
+            {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null}
+            <span>Save Add-on</span>
           </button>
         </form>
       </Modal>

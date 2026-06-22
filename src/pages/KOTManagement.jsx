@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext.jsx';
-import { CookingPot, Check, AlertCircle, RefreshCw, Clock } from 'lucide-react';
+import { CookingPot, Check, AlertCircle, RefreshCw, Clock, Loader2 } from 'lucide-react';
 import API from '../services/api.js';
 
 const KOTManagement = () => {
@@ -8,6 +8,7 @@ const KOTManagement = () => {
   const [kots, setKots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchKots = async () => {
     try {
@@ -60,11 +61,14 @@ const KOTManagement = () => {
 
   const handleUpdateStatus = async (kotId, currentStatus) => {
     const nextStatus = currentStatus === 'New' ? 'Preparing' : 'Completed';
+    setIsSubmitting(true);
     try {
       await API.put(`/pos/kots/${kotId}/status`, { status: nextStatus });
       fetchKots();
     } catch (error) {
       alert('Failed to update KOT status');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -175,22 +179,22 @@ const KOTManagement = () => {
                   {/* Actions buttons */}
                   <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
                     <button
+                      disabled={isSubmitting}
                       onClick={() => handleUpdateStatus(kot.id, kot.status)}
-                      className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl transition-all shadow-sm expired-hide ${
+                      className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl transition-all shadow-sm expired-hide disabled:opacity-50 ${
                         kot.status === 'New'
                           ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                           : 'bg-emerald-600 text-white hover:bg-emerald-700'
                       }`}
                     >
-                      {kot.status === 'New' ? (
-                        <>
-                          <CookingPot size={16} /> Start Preparing
-                        </>
+                      {isSubmitting ? (
+                        <Loader2 className="animate-spin" size={16} />
+                      ) : kot.status === 'New' ? (
+                        <CookingPot size={16} />
                       ) : (
-                        <>
-                          <Check size={16} /> Mark as Ready
-                        </>
+                        <Check size={16} />
                       )}
+                      <span>{kot.status === 'New' ? 'Start Preparing' : 'Mark as Ready'}</span>
                     </button>
                   </div>
 
