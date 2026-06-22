@@ -1,0 +1,76 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@layer utilities {
+  /* Scrollbar configuration styling */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #thermal-bill, #thermal-bill *, #thermal-kot, #thermal-kot * {
+    visibility: visible;
+  }
+  #thermal-bill, #thermal-kot {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    margin: 0;
+    padding: 0;
+    display: block !important;
+  }
+  
+  /* Print receipt targets from Orders list details drawer */
+  [id^="print-receipt-"], [id^="print-receipt-"] * {
+    visibility: visible;
+  }
+  [id^="print-receipt-"] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    margin: 0;
+    padding: 0;
+    display: block !important;
+  }
+}
+
+/* Subscription Expiration View-Only Mode CSS overrides */
+.subscription-expired button:has(.lucide-plus),
+.subscription-expired button:has(.lucide-plus-circle),
+.subscription-expired button:has(.lucide-edit),
+.subscription-expired button:has(.lucide-edit2),
+.subscription-expired button:has(.lucide-edit-3),
+.subscription-expired button:has(.lucide-trash),
+.subscription-expired button:has(.lucide-trash2),
+.subscription-expired button:has(.lucide-trash-2),
+.subscription-expired button:has(.lucide-save),
+.subscription-expired button:has(.lucide-credit-card),
+.subscription-expired button:has(.lucide-cooking-pot),
+.subscription-expired button:has(.lucide-check-circle),
+.subscription-expired button:has(.lucide-x-circle),
+.subscription-expired a:has(.lucide-plus),
+.subscription-expired a:has(.lucide-edit2),
+.subscription-expired a:has(.lucide-trash),
+.subscription-expired button[type="submit"],
+.subscription-expired input[type="submit"],
+.subscription-expired .expired-hide {
+  display: none !important;
+}
