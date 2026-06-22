@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://pos-backend-ot1c.onrender.com/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://sonket-pos-backend.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
